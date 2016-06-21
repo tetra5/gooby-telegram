@@ -21,13 +21,19 @@ class Telegooby(telepot.async.Bot):
         self.output_queue = asyncio.Queue()
     
     async def on_chat_message(self, message):
+        chat_id = message['chat']['id']
+
         for plugin in self.plugin_manager.plugins:
             plugin.on_chat_message(message)
             for item in plugin.flush_output_queue():
                 self.output_queue.put_nowait(item)
 
         for message in QueueDrainer(self.output_queue):
-            await self.sendMessage(message['chat']['id'], message)
+            await self.sendMessage(chat_id, message)
+
+    async def on_edited_chat_message(self, message):
+        pass
+
 
 if __name__ == '__main__':
     logging.config.dictConfig(LOGGING_SETTINGS)
