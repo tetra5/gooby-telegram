@@ -18,7 +18,7 @@ class Plugin(object):
         self.log = logging.getLogger('Telegooby.Plugin.{}'.format(
             self.__class__.__name__))
         self.plugin_root_dir = plugin_root_dir
-        self.settings = []
+        self.settings = {}
         self.__load_settings()
         self.output = Queue()
 

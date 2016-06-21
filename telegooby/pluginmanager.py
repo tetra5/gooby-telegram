@@ -12,10 +12,14 @@ log = logging.getLogger('Telegooby.PluginManager')
 
 class PluginManager(object):
     def __init__(self):
-        self.plugins = list()
-        self.load_plugins()
+        self._plugins = list()
+        self.__load_plugins()
 
-    def load_plugins(self):
+    @property
+    def plugins(self):
+        yield from self._plugins
+
+    def __load_plugins(self):
         plugins_dir = Settings.plugins_directory
         plugin_dirs = []
 
@@ -33,8 +37,8 @@ class PluginManager(object):
                     plugin_name = plugin.__name__
                     if plugin:
                         log.info("Installing {} ...".format(plugin_name))
-                        self.plugins.append(plugin(path.stem))
+                        self._plugins.append(plugin(path.stem))
                         log.info("Installed {}".format(plugin_name))
 
-        if not self.plugins:
+        if not self._plugins:
             log.warning("No plugins found")
