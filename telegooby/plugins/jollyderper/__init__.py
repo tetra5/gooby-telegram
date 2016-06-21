@@ -10,8 +10,10 @@ from plugin import Plugin
 class JollyDerper(Plugin):
     def on_chat_message(self, message):
         super(JollyDerper, self).on_chat_message(message)
-        message_text = message['text']
-
+        try:
+            message_text = message['text']
+        except KeyError:
+            return
         for trigger in self.settings.get('triggers'):
             if trigger in message_text.lower():
                 if '?' in message_text:
