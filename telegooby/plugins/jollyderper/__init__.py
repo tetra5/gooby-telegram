@@ -5,11 +5,14 @@
 from random import choice, randint
 
 from plugin import Plugin
+from utils import is_text_message
 
 
 class JollyDerper(Plugin):
-    def on_chat_message(self, message):
-        super(JollyDerper, self).on_chat_message(message)
+    async def on_chat_message(self, message):
+        if not is_text_message(message):
+            return
+
         try:
             message_text = message['text']
         except KeyError:
@@ -27,4 +30,4 @@ class JollyDerper(Plugin):
                     for _ in range(words_count):
                         words.append(choice(self.settings.get('herps_derps')))
                     msg = " ".join(words)
-                self.output.put_nowait(msg)
+                return msg

@@ -2,17 +2,14 @@
 # -*- coding: utf-8 -*-
 
 
-from queue import Empty
-from asyncio.queues import QueueEmpty
+import telepot
+
+from const import CONTENT_TYPE_TEXT
 
 
-class QueueDrainer(object):
-    def __init__(self, queue):
-        self.queue = queue
+def content_type(message):
+    return telepot.glance(message)[0]
 
-    def __iter__(self):
-        while True:
-            try:
-                yield self.queue.get_nowait()
-            except (Empty, QueueEmpty):
-                break
+
+def is_text_message(message):
+    return content_type(message) == CONTENT_TYPE_TEXT

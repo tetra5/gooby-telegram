@@ -2,35 +2,30 @@
 # -*- coding: utf-8 -*-
 
 
-from queue import Queue
 import logging
-
-import telepot
 
 import yaml
 
 from settings import Settings
-from utils import QueueDrainer
 
 
 class Plugin(object):
-    def __init__(self, plugin_root_dir):
+    def __init__(self, plugin_root):
         self.log = logging.getLogger('Telegooby.Plugin.{}'.format(
             self.__class__.__name__))
-        self.plugin_root_dir = plugin_root_dir
+        self.plugin_root = plugin_root
         self.settings = {}
-        self.__load_settings()
-        self.output = Queue()
+        self._load_settings()
 
-    def __load_settings(self):
+    def _load_settings(self):
         settings_path = (
             Settings.plugins_directory /
-            self.plugin_root_dir /
+            self.plugin_root /
             Settings.plugin_settings_file
         ).absolute()
 
         try:
-            self.settings = yaml.safe_load(settings_path.read_bytes())
+            self.settings = yaml.safe_load(settings_path.read_bytes()) or {}
             self.log.debug("Loaded settings: {}".format(self.settings))
         except Exception as e:
             self.log.warning("Could not load settings from {}: {}".format(
@@ -38,11 +33,5 @@ class Plugin(object):
                 e,
             ))
 
-    def flush_output_queue(self):
-        yield from QueueDrainer(self.output)
-
-    def on_chat_message(self, message):
-        content_type, chat_type, chat_id = telepot.glance(message)
-
-        if content_type != 'text':
-            return
+    async def on_chat_message(self, message):
+        raise NotImplementedError
