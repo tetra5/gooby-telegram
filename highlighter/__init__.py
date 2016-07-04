@@ -18,6 +18,4 @@ class Highlighter(Plugin):
             return
         for trigger in self.settings.get('triggers'):
             if trigger in message_text.lower():
-                words = []
-                words.append(self.settings.get('players'))
-                return "ОГОНЬ ПО ГОТОВНОСТИ! " + " ".join(words)
+                return "ОГОНЬ ПО ГОТОВНОСТИ! " + self.settings.get('players')
