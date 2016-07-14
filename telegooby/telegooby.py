@@ -6,17 +6,19 @@ import logging.config
 import logging
 import asyncio
 
-import telepot.async
+import telepot.aio
 from telepot.exception import TelegramError
 
 from settings import Settings, LOGGING_SETTINGS
 from pluginmanager import PluginManager
 
 
-class Telegooby(telepot.async.Bot):
+class Telegooby(telepot.aio.Bot):
     def __init__(self, token):
         super(Telegooby, self).__init__(token)
-        self._plugin_manager = PluginManager()
+        for path in (Settings.cache_directory, Settings.logs_directory):
+            path.mkdir(parents=True, exist_ok=True)
+        self._plugin_manager = PluginManager(self)
 
     async def on_chat_message(self, message):
         chat_id = message['chat']['id']
@@ -27,7 +29,7 @@ class Telegooby(telepot.async.Bot):
             try:
                 await self.sendMessage(chat_id, await future_result)
             except TelegramError as e:
-                # Message is empty due to unfinished async task.
+                # Result is empty due to unfinished async task.
                 if e.error_code == 400:
                     pass
                 else:
@@ -41,6 +43,8 @@ if __name__ == '__main__':
     logging.config.dictConfig(LOGGING_SETTINGS)
     log = logging.getLogger('Telegooby')
     log.info("Starting up")
+    log.info("Cache directory {}".format(Settings.cache_directory))
+    log.info("Logs directory {}".format(Settings.logs_directory))
     telegooby = Telegooby(Settings.token)
     event_loop = asyncio.get_event_loop()
     event_loop.create_task(telegooby.message_loop())
@@ -48,4 +52,6 @@ if __name__ == '__main__':
     try:
         event_loop.run_forever()
     finally:
+        log.info("Shutting down")
         event_loop.close()
+        logging.shutdown()

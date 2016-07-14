@@ -9,6 +9,8 @@ from pathlib import Path
 class Settings:
     token = os.environ.get('TELEGRAM_BOT_API_TOKEN')
     plugins_directory = Path('./plugins')
+    cache_directory = Path('~/.telegooby/cache').expanduser().absolute()
+    logs_directory = Path('~/.telegooby/logs').expanduser().absolute()
     plugin_settings_file = 'settings.yaml'
 
 
@@ -44,6 +46,10 @@ LOGGING_SETTINGS = {
         },
         'asyncio': {
             'handlers': ['console_stderr', ],
+            'level': 'DEBUG',
+        },
+        'pony.orm': {
+            'handlers': ['console', ],
             'level': 'DEBUG',
         },
     },

@@ -1,0 +1,11 @@
+# Amount of received messages required for triggering plugin automatically.
+trigger_threshold: 150
+
+# How many random messages are sampled for the upcoming text generation.
+# 0 = unlimited (use whole DB table).
+sampled_messages_count: 0
+
+# On-demand message keywords.
+trigger_chat_commands:
+  - "!markov"
+  - "!сбацай"

@@ -10,12 +10,13 @@ from settings import Settings
 
 
 class Plugin(object):
-    def __init__(self, plugin_root):
+    def __init__(self, bot, plugin_root):
         self.log = logging.getLogger('Telegooby.Plugin.{}'.format(
             self.__class__.__name__))
         self.plugin_root = plugin_root
         self.settings = {}
         self._load_settings()
+        self.bot = bot
 
     def _load_settings(self):
         settings_path = (

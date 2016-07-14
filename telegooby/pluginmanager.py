@@ -12,7 +12,8 @@ log = logging.getLogger('Telegooby.PluginManager')
 
 
 class PluginManager(object):
-    def __init__(self):
+    def __init__(self, bot):
+        self.bot = bot
         self._plugins = []
         self._load_plugins()
 
@@ -42,7 +43,7 @@ class PluginManager(object):
                     plugin_name = plugin_class.__name__
                     if plugin_class:
                         log.info("Installing {} ...".format(plugin_name))
-                        self._plugins.append(plugin_class(path.stem))
+                        self._plugins.append(plugin_class(self.bot, path.stem))
                         log.info("Installed {}".format(plugin_name))
 
         if not self._plugins:
