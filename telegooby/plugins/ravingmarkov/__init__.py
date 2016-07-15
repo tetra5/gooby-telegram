@@ -219,7 +219,12 @@ class RavingMarkov(Plugin):
                             for m in orm.select(m.text for m in ChatMessage if m.chat_id == chat_id)]
                 try:
                     mc = MarkovChain.from_string(' '.join(messages))
-                    mc.db.update(unpickled_data)
+                    # Merging unpickled data with freshly created dict.
+                    for k, v in unpickled_data.items():
+                        values = v[:]
+                        if k in mc.db:
+                            values.extend(mc.db[k])
+                        mc.db.update({k: values})
                     self.pickle_file.write_bytes(pickle.dumps(mc.db, 4))
                     return ' '.join(mc.generate_sentences())
                 except:
