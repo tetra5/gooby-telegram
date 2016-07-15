@@ -6,6 +6,7 @@ import re
 import string
 import random
 import os
+import pickle
 
 from pony import orm
 
@@ -97,7 +98,7 @@ class MarkovChain(object):
 
     def __init__(self, order=1):
         self._order = order
-        self._db = dict()
+        self.db = dict()
         self._order = 2
         self._used_first_keys = list()
 
@@ -105,12 +106,12 @@ class MarkovChain(object):
         for i, word in enumerate(words[:-(self._order + 1)]):
             value_pos = i + self._order
             key = tuple(words[i:i + self._order])
-            values = self._db.setdefault(key, list())
+            values = self.db.setdefault(key, list())
             values.append(words[value_pos])
 
     def _find_first_key(self):
         possible_keys = []
-        for key in self._db.keys():
+        for key in self.db.keys():
             first_word = key[0]
             last_word = key[-1]
             if key in self._used_first_keys:
@@ -126,7 +127,7 @@ class MarkovChain(object):
             if first_word.istitle():
                 possible_keys.append(key)
         if not possible_keys:
-            possible_keys.extend(self._db.keys())
+            possible_keys.extend(self.db.keys())
         first_key = random.choice(possible_keys)
         self._used_first_keys.append(first_key)
         return first_key
@@ -136,7 +137,7 @@ class MarkovChain(object):
         words = list()
         words.append(key[0])
         while 1:
-            possible_words = self._db.get(key)
+            possible_words = self.db.get(key)
             if not possible_words:
                 break
             word = random.choice(list(possible_words))
@@ -173,6 +174,8 @@ class RavingMarkov(Plugin):
     def __init__(self, bot, plugin_root):
         super(RavingMarkov, self).__init__(bot, plugin_root)
         db_file = Settings.cache_directory / '{}.sqlite'.format(self.plugin_root)
+        self.pickle_file = Settings.cache_directory / '{}.pickle'.format(self.plugin_root)
+        self.pickle_file.touch(0o666)
         db.bind('sqlite', str(db_file.absolute()), create_db=True)
         db.generate_mapping(create_tables=True)
 
@@ -187,6 +190,11 @@ class RavingMarkov(Plugin):
         chat_id = str(message['chat']['id'])
         timestamp = message['date']
         text = message['text']
+
+        try:
+            unpickled_data = pickle.loads(self.pickle_file.read_bytes())
+        except EOFError:
+            unpickled_data = {}
 
         with orm.db_session():
             author = Author.get(author_id=author_id)
@@ -211,6 +219,8 @@ class RavingMarkov(Plugin):
                             for m in orm.select(m.text for m in ChatMessage if m.chat_id == chat_id)]
                 try:
                     mc = MarkovChain.from_string(' '.join(messages))
+                    mc.db.update(unpickled_data)
+                    self.pickle_file.write_bytes(pickle.dumps(mc.db, 4))
                     return ' '.join(mc.generate_sentences())
                 except:
                     return
