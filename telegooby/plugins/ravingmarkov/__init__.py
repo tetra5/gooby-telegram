@@ -191,10 +191,15 @@ class RavingMarkov(Plugin):
         timestamp = message['date']
         text = message['text']
 
-        try:
-            unpickled_data = pickle.loads(self.pickle_file.read_bytes())
-        except EOFError:
-            unpickled_data = {}
+        with self.pickle_file.open('rb') as pickle_file:
+            try:
+                last_pickled_messages = pickle.load(pickle_file)
+            except EOFError:
+                last_pickled_messages = {}
+            try:
+                last_message_ids = pickle.load(pickle_file)
+            except EOFError:
+                last_message_ids = {}
 
         with orm.db_session():
             author = Author.get(author_id=author_id)
@@ -215,18 +220,52 @@ class RavingMarkov(Plugin):
             db.commit()
 
             if any(t in text for t in self.settings['trigger_chat_commands']):
-                messages = [self.process_text(m)
-                            for m in orm.select(m.text for m in ChatMessage if m.chat_id == chat_id)]
+                last_message_id = last_message_ids.get(chat_id, 0)
+                self.log.debug("Last message ID for chat ID {} is {}".format(
+                    last_message_id, chat_id
+                ))
+
+                query = orm.select(
+                    m.text
+                    for m in ChatMessage
+                    if m.chat_id == chat_id and
+                    last_message_id > m.message_id)
+
+                messages = [self.process_text(m) for m in query]
+
                 try:
                     mc = MarkovChain.from_string(' '.join(messages))
-                    # Merging unpickled data with freshly created dict.
-                    for k, v in unpickled_data.items():
+
+                    # Merging unpickled data with a freshly created dict.
+                    msgs = last_pickled_messages.get(chat_id, {})
+                    self.log.debug("Unpickled {} messages for chat ID {}".format(
+                        len(msgs), chat_id
+                    ))
+                    for k, v in last_pickled_messages.get(chat_id, {}).items():
                         values = v[:]
                         if k in mc.db:
                             values.extend(mc.db[k])
                         mc.db.update({k: values})
-                    self.pickle_file.write_bytes(pickle.dumps(mc.db, 4))
+
+                    query = orm.select(
+                        m.message_id
+                        for m in ChatMessage
+                        if m.chat_id == chat_id
+                    ).order_by(ChatMessage.message_id.desc()).limit(1)
+
+                    new_last_message_id = query.get()
+                    if not new_last_message_id:
+                        new_last_message_id = 0
+                    self.log.debug("Setting new last message ID for chat ID {} to {}".format(
+                        new_last_message_id, chat_id
+                    ))
+
+                    with self.pickle_file.open('wb') as pickle_file:
+                        pickle.dump({chat_id: mc.db}, pickle_file, 4)
+                        pickle.dump({chat_id: new_last_message_id}, pickle_file, 4)
+
                     return ' '.join(mc.generate_sentences())
+
                 except:
                     return
 
